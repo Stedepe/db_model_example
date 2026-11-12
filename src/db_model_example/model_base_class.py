@@ -38,11 +38,16 @@ SCHEMAVERSION = "0.1.0"
 
 
 def to_bson_value(value: Any) -> Any:
-    """
-    Convert Python objects to BSON-compatible values for MongoDB.
-    handles Path, timedelta, UUID, and nested structures (dicts, lists, tuples).
-    potentially handle UUID by setting MongoCLient to uuidRepresentation="standard"
-    BUT! might require migration if done too late, so maybe keep UUID as string for non _id identifiers
+    """Convert Python objects to BSON-compatible values for MongoDB.
+    Handles Path, timedelta, UUID, and nested structures (Mappings, e.g. dicts, lists, tuples).
+    for now keep UUIDs as string (usecase for non "_id"-key associated UUID values. "_id" should be treated as ObjectId, s.a.)
+    consider uuidRepresentation="standard" for UUID, might require shelling if mixture of UUID and string.
+
+    Args:
+        value: Python value to convert.
+
+    Returns:
+        converted, BSON-compatible value.
     """
     if isinstance(value, Path):
         return str(value)
@@ -70,10 +75,15 @@ def to_bson_value(value: Any) -> Any:
 
 class AnalysisBase(BaseModel):
     """
-    common behavior for all models in Analysis/Processing.
+    common behavior inherited by all models in Analysis/Processing.
     Includes type translation for the different transfer modes:
-    - json compatible dicts for http requests
-    - BSON compatible dicts for MongoDB insertion
+    - json compatible dicts for http requests (.to_http_dict())
+    - BSON compatible dicts for MongoDB insertion (.to_db_dict())
+    - validated model object with rich python types after retrieving BSON compatibles from DB (.from_db())
+    
+    use python native snake case for python dicts in application code and Pydantic inherent
+    to_camel alias generator at http transfer and for database insetion
+    use .model_validate()/.from_db() to get back snake case and python types
 
     
     """
